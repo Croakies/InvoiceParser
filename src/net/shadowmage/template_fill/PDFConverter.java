@@ -1,20 +1,10 @@
-/*
- * Decompiled with CFR 0_114.
- * 
- * Could not load the following classes:
- *  com.sun.star.beans.PropertyValue
- *  com.sun.star.frame.XComponentLoader
- *  com.sun.star.frame.XDesktop
- *  com.sun.star.frame.XStorable
- *  com.sun.star.io.IOException
- *  com.sun.star.lang.IllegalArgumentException
- *  com.sun.star.lang.XComponent
- *  com.sun.star.lang.XMultiComponentFactory
- *  com.sun.star.uno.UnoRuntime
- *  com.sun.star.uno.XComponentContext
- *  ooo.connector.BootstrapSocketConnector
- */
 package net.shadowmage.template_fill;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
+import ooo.connector.BootstrapSocketConnector;
 
 import com.sun.star.beans.PropertyValue;
 import com.sun.star.frame.XComponentLoader;
@@ -25,12 +15,6 @@ import com.sun.star.lang.XComponent;
 import com.sun.star.lang.XMultiComponentFactory;
 import com.sun.star.uno.UnoRuntime;
 import com.sun.star.uno.XComponentContext;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import ooo.connector.BootstrapSocketConnector;
 
 public class PDFConverter {
     public static void main(String[] args) {

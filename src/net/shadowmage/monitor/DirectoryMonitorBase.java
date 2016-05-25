@@ -1,48 +1,25 @@
-/*
- * Decompiled with CFR 0_114.
- * 
- * Could not load the following classes:
- *  javax.mail.Address
- *  javax.mail.BodyPart
- *  javax.mail.Message
- *  javax.mail.Message$RecipientType
- *  javax.mail.Multipart
- *  javax.mail.Session
- *  javax.mail.Transport
- *  javax.mail.internet.InternetAddress
- *  javax.mail.internet.MimeBodyPart
- *  javax.mail.internet.MimeMessage
- *  javax.mail.internet.MimeMultipart
- *  org.jdom.JDOMException
- *  org.jopendocument.dom.template.TemplateException
- */
 package net.shadowmage.monitor;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+
 import javax.activation.DataHandler;
-import javax.activation.DataSource;
 import javax.activation.FileDataSource;
 import javax.mail.Address;
 import javax.mail.BodyPart;
@@ -54,8 +31,9 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import net.shadowmage.monitor.MonitorExecutor;
+
 import net.shadowmage.template_fill.Main;
+
 import org.jdom.JDOMException;
 import org.jopendocument.dom.template.TemplateException;
 
@@ -81,7 +59,8 @@ public class DirectoryMonitorBase {
     private boolean emailFile = true;
     private boolean deleteOutput = true;
 
-    public static /* varargs */ void main(String ... aArgs) {
+    public static void main(String[] aArgs) 
+    {
         DirectoryMonitorBase monitor = new DirectoryMonitorBase();
         try {
             monitor.startMonitoring();

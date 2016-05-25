@@ -1,27 +1,13 @@
-/*
- * Decompiled with CFR 0_114.
- * 
- * Could not load the following classes:
- *  org.jdom.JDOMException
- *  org.jopendocument.dom.ODSingleXMLDocument
- *  org.jopendocument.dom.template.JavaScriptFileTemplate
- *  org.jopendocument.dom.template.TemplateException
- *  org.json.JSONArray
- *  org.json.JSONObject
- */
 package net.shadowmage.template_fill;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
-import net.shadowmage.template_fill.PDFConverter;
+
 import org.jdom.JDOMException;
-import org.jopendocument.dom.ODSingleXMLDocument;
 import org.jopendocument.dom.template.JavaScriptFileTemplate;
 import org.jopendocument.dom.template.TemplateException;
 import org.json.JSONArray;

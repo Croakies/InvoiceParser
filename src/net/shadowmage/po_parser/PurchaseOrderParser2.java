@@ -10,15 +10,14 @@ package net.shadowmage.po_parser;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import net.shadowmage.monitor.MonitorExecutor;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
