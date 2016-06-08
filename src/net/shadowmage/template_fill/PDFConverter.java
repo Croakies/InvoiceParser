@@ -30,12 +30,12 @@ public class PDFConverter {
         System.out.println("Saving to pdf: " + outputFileURL);
         try {
             XDesktop xDesktop = PDFConverter.getDesktop();
-            XComponentLoader xCompLoader = (XComponentLoader)UnoRuntime.queryInterface((Class)XComponentLoader.class, (Object)xDesktop);
+            XComponentLoader xCompLoader = (XComponentLoader)UnoRuntime.queryInterface(XComponentLoader.class, xDesktop);
             PropertyValue[] pv = new PropertyValue[]{new PropertyValue()};
             pv[0].Name = "Hidden";
             pv[0].Value = true;
             XComponent xComponent = xCompLoader.loadComponentFromURL(inputFileURL, "_blank", 0, pv);
-            XStorable xStorable = (XStorable)UnoRuntime.queryInterface((Class)XStorable.class, (Object)xComponent);
+            XStorable xStorable = (XStorable)UnoRuntime.queryInterface(XStorable.class, xComponent);
             PropertyValue[] aMediaDescriptor = new PropertyValue[]{new PropertyValue()};
             aMediaDescriptor[0].Name = "FilterName";
             aMediaDescriptor[0].Value = "writer_pdf_Export";
@@ -72,7 +72,7 @@ public class PDFConverter {
             XMultiComponentFactory xMCF = xContext.getServiceManager();
             if (xMCF != null) {
                 Object oDesktop = xMCF.createInstanceWithContext("com.sun.star.frame.Desktop", xContext);
-                xDesktop = (XDesktop)UnoRuntime.queryInterface((Class)XDesktop.class, (Object)oDesktop);
+                xDesktop = (XDesktop)UnoRuntime.queryInterface(XDesktop.class, oDesktop);
             } else {
                 System.out.println("Can't create a desktop. No connection, no remote office servicemanager available!");
             }

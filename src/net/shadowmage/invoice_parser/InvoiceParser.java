@@ -10,17 +10,14 @@ package net.shadowmage.invoice_parser;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -70,7 +67,7 @@ public class InvoiceParser {
                 line = line.substring(1);
                 if (!currentLines.isEmpty()) {
                     invoicePages.add(currentLines);
-                    currentLines = new ArrayList();
+                    currentLines = new ArrayList<String>();
                 }
             }
             currentLines.add(line);

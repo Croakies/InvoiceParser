@@ -1,33 +1,21 @@
-/*
- * Decompiled with CFR 0_114.
- * 
- * Could not load the following classes:
- *  org.jdom.JDOMException
- *  org.jopendocument.dom.template.TemplateException
- */
 package net.shadowmage.invoice_parser;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-import net.shadowmage.invoice_parser.InvoiceParser;
+
 import net.shadowmage.template_fill.Main;
+
 import org.jdom.JDOMException;
 import org.jopendocument.dom.template.TemplateException;
 
-/*
- * This class specifies class file version 49.0 but uses Java 6 signatures.  Assumed Java 6.
- */
 public class InvoiceDirectoryMonitor {
     private boolean singleRun = false;
     private int freq;
