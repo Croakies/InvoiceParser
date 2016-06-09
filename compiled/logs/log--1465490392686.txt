@@ -1,0 +1,6 @@
+SEVERE: Created parser instance from class name: net.shadowmage.po_parser.PurchaseOrderParser2 :: net.shadowmage.po_parser.PurchaseOrderParser2@1311334
+SEVERE: Setting up Invoice parsing to monitor directory: \\192.168.17.107\Print_PO
+SEVERE: Beginning directory monitoring.
+SEVERE: Redirecting output to logger, please check log.txt for output.
+SEVERE: Monitor is sleeping for: 10 seconds.
+SEVERE: Monitor is sleeping for: 10 seconds.
