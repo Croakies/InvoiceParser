@@ -34,17 +34,17 @@ public class Main
     {
       for (String tableName : tablesObject.keySet())
       {
-        template.setField(tableName, Main.createTable(tablesObject.getJSONObject(tableName)));
+        template.setField(tableName,
+            Main.createTable(tablesObject.getJSONObject(tableName)));
       }
     }
     template.createDocument().saveToPackageAs(output);
     try
     {
       String outputFileName = output.getAbsolutePath();
-      int end = outputFileName.lastIndexOf(46);
+      int end = outputFileName.lastIndexOf(46);// period character
       outputFileName = outputFileName.substring(0, end);
-      PDFConverter.saveAsPdf(output.getAbsolutePath(),
-          String.valueOf(outputFileName) + ".pdf");
+      PDFConverter.saveAsPdf(output.getAbsolutePath(), String.valueOf(outputFileName) + ".pdf");
     }
     catch (Exception e)
     {

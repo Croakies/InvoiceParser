@@ -22,6 +22,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
   protected File archivePath;
   protected List<File> outputFiles = new ArrayList<File>();
   private List<POEntry> entries = new ArrayList<POEntry>();
+  private String emailOverride = "";
   
   @Override
   public final List<File> getParsedFiles()
@@ -71,6 +72,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
           line = line.substring(1);
           fileLines.set(i, line);
         }
+        if(line.startsWith("Send Email:")){emailOverride=getLineValue(line);}
         ++i;
       }
       i = 0;
@@ -82,6 +84,10 @@ public class PurchaseOrderParser2 implements MonitorExecutor
           i = this.parseRawPO(fileLines, i);
         }
         ++i;
+      }
+      for(POEntry e : entries)
+      {
+        e.emailOverride = this.emailOverride;
       }
     }
     catch (IOException e)
@@ -167,6 +173,32 @@ public class PurchaseOrderParser2 implements MonitorExecutor
     return input;
   }
   
+  public static String getLineValue(String input)
+  {
+    String[] split;
+    int splitIndex = input.indexOf(":");
+    if (splitIndex > 0 && (split = input.split(":", 2)).length > 1)
+    {
+      return split[1].trim();
+    }
+    return "";
+  }
+  
+  public static String getFormattedDecimalValue(String input)
+  {
+    int gtLen = input.length();
+    int periodIndex = input.indexOf(46);
+    if (periodIndex == -1)
+    {
+      input = String.valueOf(input) + ".00";
+    }
+    else if (periodIndex > gtLen - 3)
+    {
+      input = String.valueOf(input) + "0";
+    }
+    return input;
+  }
+  
   public class POEntry
   {
     String poNumber;
@@ -203,6 +235,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
     String tagMemo;
     List<String> rawLines;
     List<POLineItem> lineItems;
+    String emailOverride;
     
     public POEntry()
     {
@@ -238,6 +271,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
       this.buyer = "";
       this.grandTotal = "";
       this.tagMemo = "";
+      this.emailOverride="";
       this.rawLines = new ArrayList<String>();
       this.lineItems = new ArrayList<POLineItem>();
     }
@@ -383,7 +417,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
         }
         else
         {
-          PurchaseOrderParser2.this.log("Found unsupported line: " + line);
+          log("Found unsupported line: " + line);
         }
         ++i;
       }
@@ -406,69 +440,40 @@ public class PurchaseOrderParser2 implements MonitorExecutor
         }
         if (line.startsWith("itemNumber:"))
         {
-          item.itemNumber = this.getLineValue(line);
+          item.itemNumber = getLineValue(line);
         }
         else if (line.startsWith("itemDescription:"))
         {
-          item.itemDescription = this.getLineValue(line);
+          item.itemDescription = getLineValue(line);
         }
         else if (line.startsWith("qty:"))
         {
-          item.qty = this.getLineValue(line);
+          item.qty = getLineValue(line);
         }
         else if (line.startsWith("uom:"))
         {
-          item.un = this.getLineValue(line);
+          item.un = getLineValue(line);
         }
         else if (line.startsWith("unitPrice:"))
         {
-          item.unitPrice = this.getLineValue(line);
-          item.unitPrice = this.getFormattedDecimalValue(item.unitPrice);
+          item.unitPrice = getLineValue(line);
+          item.unitPrice = getFormattedDecimalValue(item.unitPrice);
         }
         else if (line.startsWith("amount:"))
         {
-          item.amount = this.getLineValue(line);
-          item.amount = this.getFormattedDecimalValue(item.amount);
+          item.amount = getLineValue(line);
+          item.amount = getFormattedDecimalValue(item.amount);
         }
         else if (line.startsWith("itemTagMemo:"))
         {
-          item.tagMemo = PurchaseOrderParser2.this.sanatizeForXML(this
-              .getLineValue(line));
+          item.tagMemo = PurchaseOrderParser2.this.sanatizeForXML(getLineValue(line));
         }
         ++lineNumber;
       }
       this.lineItems.add(item);
       return lineNumber;
     }
-    
-    private String getFormattedDecimalValue(String input)
-    {
-      int gtLen = input.length();
-      int periodIndex = input.indexOf(46);
-      if (periodIndex == -1)
-      {
-        input = String.valueOf(input) + ".00";
-        PurchaseOrderParser2.this.log("Added .00 to grand total");
-      }
-      else if (periodIndex > gtLen - 3)
-      {
-        PurchaseOrderParser2.this.log("Added X.X0 to grand total");
-        input = String.valueOf(input) + "0";
-      }
-      return input;
-    }
-    
-    private String getLineValue(String input)
-    {
-      String[] split;
-      int splitIndex = input.indexOf(":");
-      if (splitIndex > 0 && (split = input.split(":", 2)).length > 1)
-      {
-        return split[1].trim();
-      }
-      return "";
-    }
-    
+        
     private String getCombinedTagMemo(String input)
     {
       String output = "";
@@ -476,8 +481,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
       int i = 0;
       while (i < memoLines.length)
       {
-        output = String.valueOf(output)
-            + "<text:span><text:line-break /></text:span>  " + memoLines[i];
+        output = String.valueOf(output) + "<text:span><text:line-break /></text:span>  " + memoLines[i];
         ++i;
       }
       return output;
@@ -544,6 +548,7 @@ public class PurchaseOrderParser2 implements MonitorExecutor
       dataFields.put("buyer", (Object) this.buyer);
       dataFields.put("grandTotal", (Object) this.grandTotal);
       dataFields.put("tagMemo", (Object) this.getCombinedTagMemo(this.tagMemo));
+      dataFields.put("emailOverride", this.emailOverride);
       JSONObject tableData = new JSONObject();
       root.put("tableData", (Object) tableData);
       JSONObject productTable = new JSONObject();
