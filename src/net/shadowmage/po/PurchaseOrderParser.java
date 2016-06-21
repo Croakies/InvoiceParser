@@ -99,7 +99,9 @@ public class PurchaseOrderParser
       TemplateFiller.fillTemplate(obj, filledTemplateFile, templateFile);
       File convertedPDFFile = new File(outputDirectory, convertedPDFName);
       PDFConverter.saveAsPdf(filledTemplateFile, convertedPDFFile);
-      if(config.get("deleteFilledTemplate").equals("true"))
+      boolean deleteTemplate = Boolean.parseBoolean(config.getProperty("deleteFilledTemplate"));
+      boolean deletePDF = Boolean.parseBoolean(config.getProperty("deletePrintedPDF"));
+      if(deleteTemplate)
       {
         System.out.println("Deleting filled template file: "+filledTemplateFile.getAbsolutePath());
         Files.delete(filledTemplateFile.toPath());
@@ -108,12 +110,19 @@ public class PurchaseOrderParser
       {
         emailPO(config, convertedPDFFile);
       }
-      if(!config.containsKey("emailOverride") && config.getProperty("printOutput").equals("true"))
+      boolean override = false;
+      String overrideAddress = config.getProperty("emailOverride");
+      if(overrideAddress != null && overrideAddress.contains("@"))
+      {
+        override = true;
+      }
+      boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
+      if(!override && print)
       {
         System.out.println("Printing PDF: "+convertedPDFFile.getAbsolutePath());
         PDFPrinter.printPDFSumatra(config, convertedPDFFile);
       }
-      if(config.get("deletePrintedPDF").equals("true"))
+      if(deletePDF)
       {
         System.out.println("Deleting printed PDF file: "+convertedPDFFile.getAbsolutePath());
         Files.delete(convertedPDFFile.toPath());
@@ -129,7 +138,7 @@ public class PurchaseOrderParser
   {
     String emailOverrideAddress = config.getProperty("emailOverride", "");
     String[] emailAddresses = null;
-    if(emailOverrideAddress.length()>0)
+    if(emailOverrideAddress.length()>0 && emailOverrideAddress.contains("@"))
     {
       emailAddresses = new String[]{emailOverrideAddress};
     }

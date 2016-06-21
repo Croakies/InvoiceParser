@@ -52,6 +52,16 @@ public class Util
     input = input.replace("}", "");
     input = input.replace("/", "");
     input = input.replace("\\", "");
+    input = input.replace("!", "");
+    input = input.replace("@", "");
+    input = input.replace("#", "");
+    input = input.replace("$", "");
+    input = input.replace("%", "");
+    input = input.replace("^", "");
+    input = input.replace("&", "");
+    input = input.replace("*", "");
+    input = input.replace("+", "");
+    input = input.replace("  ", " ");
     input = input.trim();
     return input;
   }
@@ -97,7 +107,13 @@ public class Util
     try
     {
       names = Files.readAllLines(new File(fileName).toPath());
-      return (String[]) names.toArray();
+      int len = names.size();
+      String[] namesArray = new String[len];
+      for(int i = 0; i < len; i++)
+      {
+        namesArray[i] = names.get(i);
+      }
+      return namesArray;
     }
     catch (IOException e)
     {

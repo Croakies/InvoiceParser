@@ -58,7 +58,7 @@ EnableTeXEnhancements = false
 DefaultDisplayMode = automatic
 DefaultZoom = fit page
 WindowState = 1
-WindowPos = 0 0 0 0
+WindowPos = 629 22 803 1040
 ShowToc = true
 SidebarDx = 0
 TocDy = 0
@@ -66,10 +66,30 @@ ShowStartPage = true
 UseTabs = true
 
 FileStates [
+	[
+		FilePath = C:\git_source\git\InvoiceParser\output\output\ADVANCED LABEL AND PRINT SYSTEMS-300000-00.pdf
+		Favorites [
+		]
+		IsPinned = false
+		IsMissing = false
+		OpenCount = 1
+		UseDefaultState = false
+		DisplayMode = continuous
+		ScrollPos = -1 -1
+		PageNo = 1
+		Zoom = fit page
+		Rotation = 0
+		WindowState = 1
+		WindowPos = 629 22 803 1040
+		ShowToc = false
+		SidebarDx = 0
+		DisplayR2L = false
+		ReparseIdx = 0
+	]
 ]
 SessionData [
 ]
 TimeOfLastUpdateCheck = 0 0
-OpenCountWeek = 284
+OpenCountWeek = 285
 
 # Settings after this line have not been recognized by the current version
