@@ -85,7 +85,9 @@ public class PurchaseOrderMonitor
   private void monitorLoop()
   {
     System.out.println("Scanning directory: "+monitoredDirectory.getAbsolutePath()+" for files.");
-    for(File fileToParse : monitoredDirectory.listFiles())
+    File[] files = monitoredDirectory.listFiles();
+    if(files==null || files.length==0){return;}//check for null, else network problems cause null-refs
+    for(File fileToParse : files)
     {
       //skip directories, only process actual files
       if(!fileToParse.isFile())
