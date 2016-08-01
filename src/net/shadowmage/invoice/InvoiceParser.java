@@ -247,6 +247,7 @@ public class InvoiceParser
     private String shipAddress1 = "";
     private String shipAddress2 = "";
     private String shipAddress3 = "";
+    private String shipAddress4 = "";
     private String billName = "";
     private String billAddress1 = "";
     private String billAddress2 = "";
@@ -272,7 +273,7 @@ public class InvoiceParser
     private String additionalCharges = "";
     private String orderTotal = "";
     private String tagMemo = "";
-    private String isInvoice = "";    
+    private String isInvoice = "INVOICE";    
     
     /**
      * WORKING
@@ -280,36 +281,11 @@ public class InvoiceParser
      */
     private InvoiceData(List<String> invoiceLines)
     {
-      invoiceNumber = " ";
-      shipName = " ";
-      shipAddress1 = " ";
-      shipAddress2 = " ";
-      shipAddress3 = " ";
-      billName = " ";
-      billAddress1 = " ";
-      billAddress2 = " ";
-      billAddress3 = " ";
-      customerNumber = " ";
-      invoiceDate = " ";
-      dueDate = " ";
-      poNumber = " ";
-      shipVia = " ";
-      orderNumber = " ";
-      slsNumber = " ";
-      terms = " ";
-      departmentNumber = " ";
-      requiredShipDate = " ";
-      cancelDate = " ";
-      orderCode = " ";
-      priceLevel = " ";
-      shipNumber = " ";
       grossTotal = "0.00";
       shippingCharges = "0.00";
       discountPercent = "0";
       discountValue = "0.00";
       additionalCharges = "0.00";
-      orderTotal = " ";
-      tagMemo = "";
       isInvoice = "INVOICE";
       tableData = new ArrayList<InvoiceTableEntry>();
       parse(invoiceLines);
@@ -331,6 +307,7 @@ public class InvoiceParser
       dataFields.put("shipAdd1", shipAddress1);
       dataFields.put("shipAdd2", shipAddress2);
       dataFields.put("shipAdd3", shipAddress3);
+      dataFields.put("shipAdd4", shipAddress4);
       dataFields.put("billName", billName);
       dataFields.put("billAdd1", billAddress1);
       dataFields.put("billAdd2", billAddress2);
@@ -402,14 +379,14 @@ public class InvoiceParser
         }
       }
       pageLines.add(currentPage);
-      log("Split raw data into: "+pageLines.size()+" pages of data.");
+      //log("Split raw data into: "+pageLines.size()+" pages of data.");
       
-      log("Parsing header data from page 1.");
+      //log("Parsing header data from page 1.");
       parseHeaderLines(pageLines.get(0));
-      log("Invoice number is: "+invoiceNumber);
-      log("Parsing tag memo from page 1.");
+      //log("Invoice number is: "+invoiceNumber);
+      //log("Parsing tag memo from page 1.");
       parseTagMemo(pageLines.get(0));      
-      log("Parsing footer data from page "+pageLines.size());
+      //log("Parsing footer data from page "+pageLines.size());
       parseFooterData(pageLines.get(pageLines.size()-1));
       
       List<String> tableLines = new ArrayList<String>();
@@ -422,7 +399,7 @@ public class InvoiceParser
         if(i>0){headerLength = 24;}
         for(int k = headerLength; k < linesLen; k++)
         {
-          log("Parsing table data line of: "+currentPage.get(k));
+          //log("Parsing table data line of: "+currentPage.get(k));
           tableLines.add(currentPage.get(k));
         }
       }      
@@ -460,6 +437,7 @@ public class InvoiceParser
       shipAddress1 = ((String)headerLines.get(11)).trim();
       shipAddress2 = ((String)headerLines.get(12)).trim();
       shipAddress3 = ((String)headerLines.get(13)).trim();
+      shipAddress3 = ((String)headerLines.get(14)).trim();
       dueDate = ((String)headerLines.get(15)).trim();
       String poLine = (String)headerLines.get(18);
       poNumber = poLine.substring(0, 12).trim();
@@ -513,7 +491,7 @@ public class InvoiceParser
       int start = end - 20;
       if(start<0){start = 0;}
       String line;
-      log("Parsing footer from lines: "+end+" - "+start);
+      //log("Parsing footer from lines: "+end+" - "+start);
       for(int i = end-1; i >=start; i--)
       {          
         line = pageLines.get(i);
@@ -522,11 +500,11 @@ public class InvoiceParser
           break;
         }
         if(line.isEmpty()){continue;}
-        log("FOOTER PARSING: "+line);
+        //log("FOOTER PARSING: "+line);
         if(line.startsWith("                                                 Pay This Amount"))
         {
           line = line.trim();
-          log("processing totals line: " + line);
+          //log("processing totals line: " + line);
           orderTotal = line.substring(15).trim();
         }
         else if(line.startsWith("                                               Total Gross"))
@@ -538,12 +516,12 @@ public class InvoiceParser
           line = line.substring(52).trim();
           discountPercent = line.substring(0, 10).trim();
           discountValue = line.substring(10).trim();
-          log((new StringBuilder("parsing discount line: ")).append(line).append(" : perc: ").append(discountPercent).append(" :: val: ").append(discountValue).toString());
+          //log((new StringBuilder("parsing discount line: ")).append(line).append(" : perc: ").append(discountPercent).append(" :: val: ").append(discountValue).toString());
         }
         else if(line.startsWith("                                         ADDITIONAL CHARGES"))
         {
           additionalCharges = line.substring(59).trim();
-          log((new StringBuilder("parsed additional charges line: ")).append(additionalCharges).toString());
+          //log((new StringBuilder("parsed additional charges line: ")).append(additionalCharges).toString());
           if(additionalCharges.isEmpty())
           {
             additionalCharges = "0.00";
@@ -551,6 +529,16 @@ public class InvoiceParser
         }
         else if(line.startsWith("                                        SHIPPING & HANDLING"))
         {
+          log("parsing shipping and handling line: "+line);
+          shippingCharges = line.substring(59).trim();
+          if(shippingCharges.isEmpty())
+          {
+            shippingCharges = "0.00";
+          }   
+        }
+        else if(line.startsWith("                                      SHIPPING AND HANDLING"))
+        {
+          log("parsing shipping and handling line: "+line);
           shippingCharges = line.substring(59).trim();
           if(shippingCharges.isEmpty())
           {
@@ -576,16 +564,16 @@ public class InvoiceParser
     
     private void parseTableLines(List<String> tableDataLines)
     {
-      log((new StringBuilder("Parsing table data of size: ")).append(tableDataLines.size()).toString());
+      //log((new StringBuilder("Parsing table data of size: ")).append(tableDataLines.size()).toString());
       InvoiceTableEntry entry = null;
       for(int i = 0; i < tableDataLines.size(); i++)
       {
         String line = (String)tableDataLines.get(i);
-        log((new StringBuilder("Processing table line: ")).append(i).append(" :: ").append(line).toString());
+        //log((new StringBuilder("Processing table line: ")).append(i).append(" :: ").append(line).toString());
         if(line.startsWith("                   ") && line.charAt(20) != ' ')
         {
           line = line.trim();
-          log((new StringBuilder("Parsed table entry line comment of: ")).append(line).toString());
+          //log((new StringBuilder("Parsed table entry line comment of: ")).append(line).toString());
           if(entry == null)
             log("ENTRY WAS NULL!");
           else
@@ -609,10 +597,10 @@ public class InvoiceParser
           line = line.trim();
           if(line.isEmpty())
           {
-            log((new StringBuilder("Skipping empty line at index: ")).append(i).toString());
+            //log((new StringBuilder("Skipping empty line at index: ")).append(i).toString());
           } else
           {
-            log((new StringBuilder("Parsed table entry SKU data of: ")).append(line).toString());
+            //log((new StringBuilder("Parsed table entry SKU data of: ")).append(line).toString());
             entry.setSKUData(line);
           }
         }
@@ -621,17 +609,17 @@ public class InvoiceParser
           line = line.trim();
           if(line.isEmpty())
           {
-            log((new StringBuilder("Skipping empty line at index: ")).append(i).toString());
+            //log((new StringBuilder("Skipping empty line at index: ")).append(i).toString());
           }
           else
           {
-            log((new StringBuilder("Parsing line number: ")).append(i).append(" data: ").append(line).append(" as table entry!").toString());
+            //log((new StringBuilder("Parsing line number: ")).append(i).append(" data: ").append(line).append(" as table entry!").toString());
             entry = parseTableEntry(line);
           }
         }
         else
         {
-          log((new StringBuilder("unprocessed line: ")).append(line).toString());
+          //log((new StringBuilder("unprocessed line: ")).append(line).toString());
         }
       }
     }
