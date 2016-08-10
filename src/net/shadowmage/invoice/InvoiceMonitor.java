@@ -9,7 +9,6 @@ import java.util.Properties;
 
 public class InvoiceMonitor
 {
-  
   private Properties config;
   private File monitoredDirectory;
   private File localTempDirectory;

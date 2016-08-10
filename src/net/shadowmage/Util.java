@@ -8,6 +8,19 @@ import java.util.List;
 public class Util
 {
   
+  public static String getCombinedTagMemo(String input)
+  {
+    String output = "";
+    String[] memoLines = input.split("/N");
+    int i = 0;
+    while (i < memoLines.length)
+    {
+      output = String.valueOf(output) + "<text:span><text:line-break /></text:span>  " + memoLines[i];
+      ++i;
+    }
+    return output;
+  }
+  
   public static String getSubstring(String input, int begin, int end)
   {
     if (input == null || input.length() == 0)

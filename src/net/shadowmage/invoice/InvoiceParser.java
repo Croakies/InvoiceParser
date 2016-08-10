@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
@@ -20,37 +19,28 @@ import org.json.JSONObject;
 public class InvoiceParser
 {
   
-  /**
-   * WORKING
-   * @param config configuration file 
-   * @param inputFile raw file, may contain multiple data sets
-   * @param tempDirectory directory to save any interim/temporary files (filled templates, JSON raw outputs, etc)
-   * @param outputDirectory directory to save in which to save the finished and converted .pdf document
-   */
   public static void parseInvoice(Properties config, File inputFile, File tempDirectory, File outputDirectory)
   {
     try
     {
-      List<String> fileLines = Files.readAllLines(inputFile.toPath()); 
-      
+      List<String> fileLines = Files.readAllLines(inputFile.toPath());      
       //first pass parsing; clean up new-line feed chars
-      //grab email override if present
-      
-      //      String line;
-      //      int len = fileLines.size();    
-      //      for(int i = 0; i< len; i++)
-      //      {
-      //        line = fileLines.get(i);
-      //        if (line.startsWith("\f"))
-      //        {
-      //          line = line.substring(1);
-      //          fileLines.set(i, line);
-      //        }
-      //        if(line.startsWith("Send Email:"))
-      //        {
-      //          config.setProperty("emailOverride", Util.getLineValue(line));
-      //        }
-      //      }
+      //grab email override if present      
+      String line;
+      int len = fileLines.size();    
+      for(int i = 0; i< len; i++)
+      {
+        line = fileLines.get(i);
+        if (line.startsWith("\f"))
+        {
+          line = line.substring(1);
+          fileLines.set(i, line);
+        }
+        if(line.startsWith("Send Email:"))
+        {
+          config.setProperty("emailOverride", Util.getLineValue(line));
+        }
+      }
       
       InvoiceParser parser = new InvoiceParser();
       List<InvoiceData> invoices = parser.parseLines(fileLines);
@@ -68,17 +58,8 @@ public class InvoiceParser
     }
   }
   
-  /**
-   * WORKING
-   * @param config
-   * @param obj
-   * @param tempDirectory
-   * @param outputDirectory
-   */
   private static void processInvoice(Properties config, JSONObject obj, File tempDirectory, File outputDirectory)
   {
-    //log("Processing invoice JSON data:\n"+obj.toString(2));
-    //if(true){return;}
     File templateFile = new File(config.getProperty("templateFile"));    
     String fileBasicName = obj.getJSONObject("dataFields").getString("invoiceNum");
     String filledTemplateName = fileBasicName + ".ott";
@@ -124,11 +105,6 @@ public class InvoiceParser
     }
   }
   
-  /**
-   * WORKING
-   * @param config
-   * @param convertedPDFFile
-   */
   private static void emailPDF(Properties config, File convertedPDFFile)
   {
     String emailOverrideAddress = config.getProperty("emailOverride", "");
@@ -143,105 +119,62 @@ public class InvoiceParser
     }
     if(emailAddresses.length>0)
     {
-      int len = emailAddresses.length;
-      for(int i = 0; i < len; i++)
-      {
-        System.out.println("Dest email: "+emailAddresses[i]);
-      }
       String sender = config.getProperty("emailSender");
       String host = config.getProperty("emailHost");
       String user = config.getProperty("emailUser");
       String subject = "Purchase Order: "+convertedPDFFile.getName();
       String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
-      System.out.println("Subject: "+subject);
-      System.out.println("BodyText: "+bodyText);
       EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
     }
   }
   
-  /**
-   * WORKING
-   * @param data
-   */
   public static void log(String data)
   {
     System.out.println(data);    
   }
   
-  /**
-   * WORKING
-   * Iterate through the input lines from the entire file.  May contain multiple invoices.
-   * Parse through lines, splitting at page-feed characters ('\f'), add pages to a list of pages
-   * Examine each page for its invoice number
-   * @param fileData
-   */
   private final List<InvoiceData> parseLines(List<String> fileData)
   {
     List<List<String>> invoicePages = new ArrayList<List<String>>();
     List<String> currentPageLines = new ArrayList<String>();
-    
     String line;
     int len = fileData.size();
+    //loop through all lines in file, breaking into distinct invoices based on the 'invoiceNumber' starting line
     for(int i = 0; i < len; i++)
     {
       line = fileData.get(i);
-      if(line.startsWith("\f") && !currentPageLines.isEmpty())//page break, if lines were not empty
+      if(line.startsWith("invoiceNumber"))
       {
-        invoicePages.add(currentPageLines);
-        currentPageLines = new ArrayList<String>();
+        if(!currentPageLines.isEmpty())
+        {
+          invoicePages.add(currentPageLines);
+          currentPageLines = new ArrayList<String>();
+        }
       }
-      currentPageLines.add(line);            
+      currentPageLines.add(line);
     }
-    log("  Parsed: " + invoicePages.size()+" pages of raw invoice data.  Examining pages for invoice numbers and combining pages for processing into documents.");
+    //there is no final 'invoiceNumber' to trigger the next, so check what was previously parsed, it is likely an invoice
+    if(!currentPageLines.isEmpty())
+    {
+      invoicePages.add(currentPageLines);      
+    }
+    log("Parsed: "+invoicePages.size()+" distinct invoices.");
     
-    //loop through the split out pages and add them to list of lines by invoice number
-    HashMap<String, List<String>> invoicesByNumber = new HashMap<String, List<String>>();
-    List<String> page;
-    String invoiceNumber;
+    //loop through all sets of invoice page data processing into InvoiceData instances
+    InvoiceData data;
+    List<InvoiceData> invoices = new ArrayList<InvoiceData>();
     len = invoicePages.size();
     for(int i = 0; i < len; i++)
     {
-      page = invoicePages.get(i);
-      invoiceNumber = getInvoiceNumber(page);
-      if(!invoicesByNumber.containsKey(invoiceNumber))
-      {
-        invoicesByNumber.put(invoiceNumber, new ArrayList<String>());
-      }
-      invoicesByNumber.get(invoiceNumber).addAll(page);
-    }
-    
-    List<String> invoiceLineData;
-    InvoiceData data;
-    List<InvoiceData> invoices = new ArrayList<InvoiceData>();
-    for(String key : invoicesByNumber.keySet())
-    {
-      invoiceLineData = invoicesByNumber.get(key);
-      data = new InvoiceData(invoiceLineData);
+      data = new InvoiceData(invoicePages.get(i));
       invoices.add(data);
     }
     return invoices;
   }
-  
-  /**
-   * WORKING
-   * @param invoicePageLines
-   * @return
-   */
-  private String getInvoiceNumber(List<String> invoicePageLines)
-  {
-    String invoiceNumberAndPage = ((String)invoicePageLines.get(3)).trim();
-    String invoiceNumber = invoiceNumberAndPage.substring(14, 22).trim();
-    return invoiceNumber;
-  }
-  
-  /**
-   * Data container and parser class for a single Invoice document.
-   * Includes methods to parse an invoice from raw lines and convert into a JSON format suitable for use in the template-filling system.
-   */
+    
   private class InvoiceData
   {
     private List<InvoiceTableEntry> tableData = new ArrayList<InvoiceTableEntry>();
-    private List<String> tagMemoLines = new ArrayList<String>();
     private String invoiceNumber = "";
     private String shipName = "";
     private String shipAddress1 = "";
@@ -275,10 +208,6 @@ public class InvoiceParser
     private String tagMemo = "";
     private String isInvoice = "INVOICE";    
     
-    /**
-     * WORKING
-     * @param invoiceLines
-     */
     private InvoiceData(List<String> invoiceLines)
     {
       grossTotal = "0.00";
@@ -290,14 +219,12 @@ public class InvoiceParser
       tableData = new ArrayList<InvoiceTableEntry>();
       parse(invoiceLines);
     }
-    
-    /**
-     * WORKING
-     * @return
-     */
+
     private JSONObject toJSON()
     {
       JSONObject root = new JSONObject();
+      //TODO add email output data to the JSON root object so that it can be read by the next step of processing?
+      
       JSONObject dataFields = new JSONObject();
       root.put("dataFields", dataFields);
       dataFields.put("invoiceNum", invoiceNumber);
@@ -331,7 +258,7 @@ public class InvoiceParser
       dataFields.put("discountValue", discountValue);
       dataFields.put("additionalCharges", additionalCharges);
       dataFields.put("shippingCharges", shippingCharges);
-      dataFields.put("tagMemo", tagMemo);
+      dataFields.put("tagMemo", Util.getCombinedTagMemo(tagMemo));
       JSONObject tableData = new JSONObject();
       root.put("tableData", tableData);
       JSONObject productTable = new JSONObject();
@@ -355,292 +282,75 @@ public class InvoiceParser
     
     private void parse(List<String> invoiceLines)
     {
-      List<List<String>> pageLines = new ArrayList<List<String>>();
-      List<String> currentPage = new ArrayList<String>();
       int len = invoiceLines.size();
       String line;
-      int headerLength = 0;
       for(int i = 0; i < len; i++)
       {
         line = invoiceLines.get(i);
-        if(line.startsWith("\f"))//end of current page / start of next page
-        {          
-          if(!currentPage.isEmpty())
-          {
-            pageLines.add(currentPage);
-            currentPage = new ArrayList<String>();
-          }
-        }
-        currentPage.add(line);
-        if(i > 21 && headerLength==0 && !line.isEmpty() && !line.startsWith(" "))
-        {
-          headerLength = i;
-          log("Set header length to: "+headerLength+" from line: "+line);
-        }
+        if(line.startsWith("invoiceNumber")){invoiceNumber = Util.getLineValue(line);}
+        else if(line.startsWith("shipName")){shipName = Util.getLineValue(line);}
+        else if(line.startsWith("shipAddress1")){shipAddress1 = Util.getLineValue(line);}
+        else if(line.startsWith("shipAddress2")){shipAddress2 = Util.getLineValue(line);}
+        else if(line.startsWith("shipAddress3")){shipAddress3 = Util.getLineValue(line);}
+        else if(line.startsWith("shipAddress4")){shipAddress4 = Util.getLineValue(line);}
+        else if(line.startsWith("billName")){billName = Util.getLineValue(line);}
+        else if(line.startsWith("billAddress1")){billAddress1 = Util.getLineValue(line);}
+        else if(line.startsWith("billAddress2")){billAddress2 = Util.getLineValue(line);}
+        else if(line.startsWith("billAddress3")){billAddress3 = Util.getLineValue(line);}
+        else if(line.startsWith("customerNumber")){customerNumber = Util.getLineValue(line);}
+        else if(line.startsWith("invoiceDate")){invoiceDate = Util.getLineValue(line);}
+        else if(line.startsWith("dueDate")){dueDate = Util.getLineValue(line);}
+        else if(line.startsWith("poNumber")){poNumber = Util.getLineValue(line);}
+        else if(line.startsWith("shipVia")){shipVia = Util.getLineValue(line);}
+        else if(line.startsWith("orderNumber")){orderNumber = Util.getLineValue(line);}
+        else if(line.startsWith("slsNumber")){slsNumber = Util.getLineValue(line);}
+        else if(line.startsWith("terms")){terms = Util.getLineValue(line);}
+        else if(line.startsWith("departmentNumber")){departmentNumber = Util.getLineValue(line);}
+        else if(line.startsWith("requiredShipDate")){requiredShipDate = Util.getLineValue(line);}
+        else if(line.startsWith("cancelDate")){cancelDate = Util.getLineValue(line);}
+        else if(line.startsWith("orderCode")){orderCode = Util.getLineValue(line);}
+        else if(line.startsWith("priceLevel")){priceLevel = Util.getLineValue(line);}
+        else if(line.startsWith("shipNumber")){shipNumber = Util.getLineValue(line);}
+        else if(line.startsWith("grossTotal")){grossTotal = Util.getLineValue(line);}
+        else if(line.startsWith("shippingCharges")){shippingCharges = Util.getLineValue(line);}
+        else if(line.startsWith("discountPercent")){discountPercent = Util.getLineValue(line);}
+        else if(line.startsWith("discountValue")){discountValue = Util.getLineValue(line);}
+        else if(line.startsWith("additionalCharges")){additionalCharges = Util.getLineValue(line);}
+        else if(line.startsWith("orderTotal")){orderTotal = Util.getLineValue(line);}
+        else if(line.startsWith("isInvoice")){isInvoice = Util.getLineValue(line).equals("True")? "INVOICE" : "CREDIT";}
+        else if(line.startsWith("tagMemo")){tagMemo = Util.sanatizeForXML(Util.getLineValue(line));}
+        else if(line.startsWith("itemCode")){i = parseItemBlock(invoiceLines, i);}
       }
-      pageLines.add(currentPage);
-      //log("Split raw data into: "+pageLines.size()+" pages of data.");
-      
-      //log("Parsing header data from page 1.");
-      parseHeaderLines(pageLines.get(0));
-      //log("Invoice number is: "+invoiceNumber);
-      //log("Parsing tag memo from page 1.");
-      parseTagMemo(pageLines.get(0));      
-      //log("Parsing footer data from page "+pageLines.size());
-      parseFooterData(pageLines.get(pageLines.size()-1));
-      
-      List<String> tableLines = new ArrayList<String>();
-      len = pageLines.size();
-      int linesLen;
-      for(int i = 0; i < len; i++)
-      {        
-        currentPage = pageLines.get(i);
-        linesLen = currentPage.size();
-        if(i>0){headerLength = 24;}
-        for(int k = headerLength; k < linesLen; k++)
-        {
-          //log("Parsing table data line of: "+currentPage.get(k));
-          tableLines.add(currentPage.get(k));
-        }
-      }      
-      parseTableLines(tableLines);
-      
-      len = tagMemoLines.size();
-      for(int i = 0; i < len; i++)
+      grossTotal = Util.getFormattedDecimalValue(grossTotal);
+      shippingCharges = Util.getFormattedDecimalValue(shippingCharges);
+      discountValue = Util.getFormattedDecimalValue(discountValue);
+      additionalCharges = Util.getFormattedDecimalValue(additionalCharges);
+      orderTotal = Util.getFormattedDecimalValue(orderTotal);
+    }
+    
+    private int parseItemBlock(List<String> lines, int startIndex)
+    {
+      int len = lines.size();
+      List<String> itemLines = new ArrayList<String>();
+      String line;
+      int endIndex = startIndex;
+      for(int i = startIndex; i < len; i++)
       {
-        if(i > 0)
-        {
-          tagMemo = tagMemo + "<text:span><text:line-break /></text:span>"; 
-        }
-        tagMemo = tagMemo + tagMemoLines.get(i);
-      }
-    }
-    
-    /**
-     * WORKING
-     * @param headerLines
-     */
-    private void parseHeaderLines(List<String> headerLines)
-    {
-      if(((String)headerLines.get(1)).startsWith("                                               *** CREDIT ***"))
-        isInvoice = "CREDIT";
-      String invoiceNumberAndPage = ((String)headerLines.get(3)).trim();
-      invoiceNumber = invoiceNumberAndPage.substring(14, 22).trim();
-      billName = ((String)headerLines.get(4)).trim();
-      billAddress1 = ((String)headerLines.get(5)).trim();
-      billAddress2 = ((String)headerLines.get(6)).trim();
-      billAddress3 = ((String)headerLines.get(7)).substring(0, 50).trim();
-      String lineEight = (String)headerLines.get(7);
-      customerNumber = lineEight.substring(50, 71).trim();
-      invoiceDate = lineEight.substring(71, lineEight.length()).trim();
-      shipName = ((String)headerLines.get(10)).trim();
-      shipAddress1 = ((String)headerLines.get(11)).trim();
-      shipAddress2 = ((String)headerLines.get(12)).trim();
-      shipAddress3 = ((String)headerLines.get(13)).trim();
-      shipAddress3 = ((String)headerLines.get(14)).trim();
-      dueDate = ((String)headerLines.get(15)).trim();
-      String poLine = (String)headerLines.get(18);
-      poNumber = poLine.substring(0, 12).trim();
-      shipVia = poLine.substring(12, 44).trim();
-      orderNumber = poLine.substring(44, 52).trim();
-      slsNumber = poLine.substring(52, 60).trim();
-      terms = poLine.substring(60, poLine.length()).trim();
-      String deptLine = (String)headerLines.get(21);
-      departmentNumber = deptLine.substring(0, 12).trim();
-      requiredShipDate = deptLine.substring(12, 24).trim();
-      cancelDate = deptLine.substring(24, 40).trim();
-      orderCode = deptLine.substring(40, 52).trim();
-      priceLevel = deptLine.substring(52, 60).trim();
-      shipNumber = deptLine.substring(60, deptLine.length()).trim();
-    }
-        
-    private void parseTagMemo(List<String> pageLines)
-    {
-      int start = 22;
-      int end = pageLines.size();
-      String line;
-      for(int i = start; i < end; i++)
-      {          
-        line = pageLines.get(i);
-        if(line.isEmpty()){continue;}
-        if(!line.startsWith(" "))//not a tag memo line, done reading tag, exit reading loop
-        {
-          break;
-        }        
-        //log("TAG MEMO PARSING: "+line);
-        if(line.startsWith(" "))
-        {
-          //skip continued lines
-          if(line.startsWith("                                                           Continued"))
-          {
-            continue;
-          }
-          line = line.trim();
-          if(!line.isEmpty())
-          {
-            tagMemoLines.add(Util.sanatizeForXML(line));
-          }
-        }
-      }
-    }
-    
-    private void parseFooterData(List<String> pageLines)
-    {
-      //TODO parse from the bottom up, stop when the first non-empty line is found that doesn't start with a space
-      int end = pageLines.size();
-      int start = end - 20;
-      if(start<0){start = 0;}
-      String line;
-      //log("Parsing footer from lines: "+end+" - "+start);
-      for(int i = end-1; i >=start; i--)
-      {          
-        line = pageLines.get(i);
-        if(!line.isEmpty() && !line.startsWith(" "))
+        line = lines.get(i);
+        if(i > startIndex && line.startsWith("itemCode"))
         {
           break;
         }
-        if(line.isEmpty()){continue;}
-        //log("FOOTER PARSING: "+line);
-        if(line.startsWith("                                                 Pay This Amount"))
-        {
-          line = line.trim();
-          //log("processing totals line: " + line);
-          orderTotal = line.substring(15).trim();
-        }
-        else if(line.startsWith("                                               Total Gross"))
-        {
-          grossTotal = line.substring(59).trim();
-        }   
-        else if(line.startsWith("                                       Order disc :"))
-        {
-          line = line.substring(52).trim();
-          discountPercent = line.substring(0, 10).trim();
-          discountValue = line.substring(10).trim();
-          //log((new StringBuilder("parsing discount line: ")).append(line).append(" : perc: ").append(discountPercent).append(" :: val: ").append(discountValue).toString());
-        }
-        else if(line.startsWith("                                         ADDITIONAL CHARGES"))
-        {
-          additionalCharges = line.substring(59).trim();
-          //log((new StringBuilder("parsed additional charges line: ")).append(additionalCharges).toString());
-          if(additionalCharges.isEmpty())
-          {
-            additionalCharges = "0.00";
-          }   
-        }
-        else if(line.startsWith("                                        SHIPPING & HANDLING"))
-        {
-          log("parsing shipping and handling line: "+line);
-          shippingCharges = line.substring(59).trim();
-          if(shippingCharges.isEmpty())
-          {
-            shippingCharges = "0.00";
-          }   
-        }
-        else if(line.startsWith("                                      SHIPPING AND HANDLING"))
-        {
-          log("parsing shipping and handling line: "+line);
-          shippingCharges = line.substring(59).trim();
-          if(shippingCharges.isEmpty())
-          {
-            shippingCharges = "0.00";
-          }   
-        }
-        else if(line.startsWith("                                      INTERNATIONAL FREIGHT"))
-        {
-          String val = line.substring(59).trim();
-          if(shippingCharges.isEmpty())
-          {
-            shippingCharges = val;
-          }
-          else
-          {
-            float fv = Float.parseFloat(shippingCharges);
-            fv += Float.parseFloat(val);
-            shippingCharges = String.format("%.2f", fv);
-          }
-        }
+        itemLines.add(line);
+        endIndex = i;        
       }
-    }
-    
-    private void parseTableLines(List<String> tableDataLines)
-    {
-      //log((new StringBuilder("Parsing table data of size: ")).append(tableDataLines.size()).toString());
-      InvoiceTableEntry entry = null;
-      for(int i = 0; i < tableDataLines.size(); i++)
-      {
-        String line = (String)tableDataLines.get(i);
-        //log((new StringBuilder("Processing table line: ")).append(i).append(" :: ").append(line).toString());
-        if(line.startsWith("                   ") && line.charAt(20) != ' ')
-        {
-          line = line.trim();
-          //log((new StringBuilder("Parsed table entry line comment of: ")).append(line).toString());
-          if(entry == null)
-            log("ENTRY WAS NULL!");
-          else
-            entry.addCommentData(line);
-        }
-        else if(line.startsWith("             ") && line.trim().length() > 0)
-        {
-//          if(i >= 36)
-//          {
-//            log("Skipping second page tag memo line");
-//          }
-//          else
-//          {
-//            line = line.trim();
-//            log((new StringBuilder("found tag memo line of: ")).append(line).toString());
-//            tagMemoLines.add(line);
-//          }
-        }
-        else if(line.startsWith("  "))
-        {
-          line = line.trim();
-          if(line.isEmpty())
-          {
-            //log((new StringBuilder("Skipping empty line at index: ")).append(i).toString());
-          } else
-          {
-            //log((new StringBuilder("Parsed table entry SKU data of: ")).append(line).toString());
-            entry.setSKUData(line);
-          }
-        }
-        else if(!line.startsWith(" ") && !line.isEmpty())
-        {
-          line = line.trim();
-          if(line.isEmpty())
-          {
-            //log((new StringBuilder("Skipping empty line at index: ")).append(i).toString());
-          }
-          else
-          {
-            //log((new StringBuilder("Parsing line number: ")).append(i).append(" data: ").append(line).append(" as table entry!").toString());
-            entry = parseTableEntry(line);
-          }
-        }
-        else
-        {
-          //log((new StringBuilder("unprocessed line: ")).append(line).toString());
-        }
-      }
-    }
-    
-    /**
-     * WORKING
-     * @param line
-     * @return
-     */
-    private InvoiceTableEntry parseTableEntry(String line)
-    {
-      InvoiceTableEntry entry = new InvoiceTableEntry(line);
-      tableData.add(entry);
-      return entry;
+      InvoiceTableEntry ite = new InvoiceTableEntry(itemLines);
+      tableData.add(ite);
+      return endIndex;
     }
     
   }//end class InvoiceData
   
-  /**
-   * WORKING
-   */
   private class InvoiceTableEntry
   {    
     private String itemCode;
@@ -650,27 +360,37 @@ public class InvoiceParser
     private String price;
     private String amount;
     private String skuData;
-    private List<String> commentData;
+    private List<String> commentData = new ArrayList<String>();
     
-    private InvoiceTableEntry(String line)
+    private InvoiceTableEntry(List<String> lines)
     {
-      commentData = new ArrayList<String>();
-      itemCode = line.substring(0, 13).trim();
-      itemDescription = line.substring(13, 45).trim();
-      unitOfMeasure = line.substring(45, 50).trim();
-      quantity = line.substring(50, 55).trim();
-      price = line.substring(55, 66).trim();
-      amount = line.substring(66, 78).trim();
-    }
-    
-    public void setSKUData(String skuData)
-    {
-      this.skuData = skuData;
-    }
-    
-    public void addCommentData(String line)
-    {
-      commentData.add(line);
+      String line;
+      int len = lines.size();
+      for(int i = 0; i < len; i++)
+      {
+        line = lines.get(i);
+        if(line.startsWith("itemCode")){itemCode=Util.getLineValue(line);}
+        else if(line.startsWith("itemDescription")){itemDescription=Util.getLineValue(line);}
+        else if(line.startsWith("unitOfMeasure")){unitOfMeasure = Util.getLineValue(line);}
+        else if(line.startsWith("quantity")){quantity = Util.getLineValue(line);}
+        else if(line.startsWith("price")){price = Util.getLineValue(line);}
+        else if(line.startsWith("amount")){amount = Util.getLineValue(line);}
+        else if(line.startsWith("skuData")){skuData = Util.getLineValue(line);}        
+        else if(line.startsWith("commentData"))
+        {
+          String[] tagLines = line.split(":",-1)[1].trim().split("/N",-1);          
+          int len2 = tagLines.length;
+          for(int k = 0; k < len2; k++)
+          {
+            if(tagLines[k].length()>0)
+            {
+              commentData.add(tagLines[k]);  
+            }
+          }
+        }        
+      }
+      price = Util.getFormattedDecimalValue(price);
+      amount = Util.getFormattedDecimalValue(amount);
     }
     
     private JSONObject toJSON()

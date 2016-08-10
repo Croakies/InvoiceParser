@@ -347,7 +347,6 @@ public class POEntry
     {
       tableEntries.put((Object) entry.toJSON());
     }
-    System.out.println("JSON: "+root.toString(2));
     return root;
   }
   
