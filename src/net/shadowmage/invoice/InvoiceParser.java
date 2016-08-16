@@ -185,6 +185,7 @@ public class InvoiceParser
     private String billAddress1 = "";
     private String billAddress2 = "";
     private String billAddress3 = "";
+    private String billAddress4 = "";
     private String customerNumber = "";
     private String invoiceDate = "";
     private String dueDate = "";
@@ -207,6 +208,7 @@ public class InvoiceParser
     private String orderTotal = "";
     private String tagMemo = "";
     private String isInvoice = "INVOICE";    
+    private String arEmail = "";
     
     private InvoiceData(List<String> invoiceLines)
     {
@@ -224,6 +226,7 @@ public class InvoiceParser
     {
       JSONObject root = new JSONObject();
       //TODO add email output data to the JSON root object so that it can be read by the next step of processing?
+      //root.put("arEmail", "foo");
       
       JSONObject dataFields = new JSONObject();
       root.put("dataFields", dataFields);
@@ -239,6 +242,7 @@ public class InvoiceParser
       dataFields.put("billAdd1", billAddress1);
       dataFields.put("billAdd2", billAddress2);
       dataFields.put("billAdd3", billAddress3);
+      dataFields.put("billAdd4", billAddress4);
       dataFields.put("dueDate", dueDate);
       dataFields.put("poNum", poNumber);
       dataFields.put("shipVia", shipVia);
@@ -284,6 +288,7 @@ public class InvoiceParser
     {
       int len = invoiceLines.size();
       String line;
+      boolean sendEmail = false;
       for(int i = 0; i < len; i++)
       {
         line = invoiceLines.get(i);
@@ -319,8 +324,11 @@ public class InvoiceParser
         else if(line.startsWith("orderTotal")){orderTotal = Util.getLineValue(line);}
         else if(line.startsWith("isInvoice")){isInvoice = Util.getLineValue(line).equals("True")? "INVOICE" : "CREDIT";}
         else if(line.startsWith("tagMemo")){tagMemo = Util.sanatizeForXML(Util.getLineValue(line));}
+        else if(line.startsWith("sendAREmail")){sendEmail = Util.parseBool(Util.getLineValue(line));}
+        else if(line.startsWith("arEmail")){arEmail = Util.getLineValue(line);}
         else if(line.startsWith("itemCode")){i = parseItemBlock(invoiceLines, i);}
       }
+      if(!sendEmail){arEmail="";}
       grossTotal = Util.getFormattedDecimalValue(grossTotal);
       shippingCharges = Util.getFormattedDecimalValue(shippingCharges);
       discountValue = Util.getFormattedDecimalValue(discountValue);
@@ -370,7 +378,7 @@ public class InvoiceParser
       {
         line = lines.get(i);
         if(line.startsWith("itemCode")){itemCode=Util.getLineValue(line);}
-        else if(line.startsWith("itemDescription")){itemDescription=Util.getLineValue(line);}
+        else if(line.startsWith("itemDescription")){itemDescription = Util.sanatizeForXML(Util.getLineValue(line));}
         else if(line.startsWith("unitOfMeasure")){unitOfMeasure = Util.getLineValue(line);}
         else if(line.startsWith("quantity")){quantity = Util.getLineValue(line);}
         else if(line.startsWith("price")){price = Util.getLineValue(line);}

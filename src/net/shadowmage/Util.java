@@ -8,6 +8,20 @@ import java.util.List;
 public class Util
 {
   
+  public static boolean parseBool(String input)
+  {
+    boolean val = false;
+    try
+    {
+      val = Boolean.parseBoolean(input);
+    }
+    catch(Exception e)
+    {
+      
+    }
+    return val;
+  }
+  
   public static String getCombinedTagMemo(String input)
   {
     String output = "";
@@ -91,7 +105,11 @@ public class Util
   {
     int gtLen = input.length();
     int periodIndex = input.indexOf(46);
-    if (periodIndex == -1)
+    if(periodIndex==0)
+    {
+      input = "0"+input;
+    }
+    else if (periodIndex == -1)
     {
       input = String.valueOf(input) + ".00";
     }
