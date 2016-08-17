@@ -110,7 +110,7 @@ public class InvoiceMonitor
 
         //pass the parser the reference to the local copy of the file
         //parser will be responsible for any further processing of files and post-parsing cleanup
-        InvoiceParserOld.parseInvoice(config, fileToParse, localTempDirectory, localOutputDirectory);
+        InvoiceParser.parseInvoice(config, fileToParse, localTempDirectory, localOutputDirectory);
       }
       catch (IOException e)
       {

@@ -28,6 +28,7 @@ public class InvoiceParser
       //grab email override if present      
       String line;
       int len = fileLines.size();    
+      String emailOverride = "";
       for(int i = 0; i< len; i++)
       {
         line = fileLines.get(i);
@@ -38,7 +39,7 @@ public class InvoiceParser
         }
         if(line.startsWith("Send Email:"))
         {
-          config.setProperty("emailOverride", Util.getLineValue(line));
+          emailOverride = Util.getLineValue(line);
         }
       }
       
@@ -48,7 +49,7 @@ public class InvoiceParser
       //finally, send to the next step of processing; for filling template, converting to pdf, and email/print as needed      
       for(InvoiceData e : invoices)
       {
-        processInvoice(config, e.toJSON(), tempDirectory, outputDirectory);
+        processInvoice(config, e.toJSON(), tempDirectory, outputDirectory, emailOverride);
       }
       config.remove("emailOverride");
     }
@@ -58,7 +59,7 @@ public class InvoiceParser
     }
   }
   
-  private static void processInvoice(Properties config, JSONObject obj, File tempDirectory, File outputDirectory)
+  private static void processInvoice(Properties config, JSONObject obj, File tempDirectory, File outputDirectory, String emailOverride)
   {
     File templateFile = new File(config.getProperty("templateFile"));    
     String fileBasicName = obj.getJSONObject("dataFields").getString("invoiceNum");
@@ -70,29 +71,45 @@ public class InvoiceParser
       TemplateFiller.fillTemplate(obj, filledTemplateFile, templateFile);
       File convertedPDFFile = new File(outputDirectory, convertedPDFName);
       PDFConverter.saveAsPdf(filledTemplateFile, convertedPDFFile);
+      
       boolean deleteTemplate = Boolean.parseBoolean(config.getProperty("deleteFilledTemplate"));
-      boolean deletePDF = Boolean.parseBoolean(config.getProperty("deletePrintedPDF"));
       if(deleteTemplate)
       {
         System.out.println("Deleting filled template file: "+filledTemplateFile.getAbsolutePath());
         Files.delete(filledTemplateFile.toPath());
       }
-      if(config.getProperty("emailOutput").equals("true"))
+      
+      //default to override address if present
+      String emailAddress = emailOverride;
+      //else check for sendAREmail in the JSON root data; if 'True' grab email from arEmail from JSON root data
+      if(emailAddress.isEmpty())
       {
-        emailPDF(config, convertedPDFFile);
+        boolean send = obj.getBoolean("sendAREmail");        
+        log("sendEmailString: "+send);
+        log("JSON RAW: \n"+obj.toString(2));
+        if(send)
+        {
+          emailAddress = obj.getString("arEmail");
+        }
       }
-      boolean override = false;
-      String overrideAddress = config.getProperty("emailOverride");
-      if(overrideAddress != null && overrideAddress.contains("@"))
+      
+      if(!emailAddress.isEmpty())
       {
-        override = true;
+        log("DEBUG: SHOULD EMAIL TO: "+emailAddress);
+        emailPDF(config, convertedPDFFile, emailAddress);  
       }
-      boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
-      if(!override && print)
+      else//not being emailed to anyone, print it to printer specified in config
       {
-        System.out.println("Printing PDF: "+convertedPDFFile.getAbsolutePath());
-        PDFPrinter.printPDFSumatra(config, convertedPDFFile);
+        log("DEBUG: SHOULD PRINT INVOICE");
+        boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
+        if(print)
+        {
+          System.out.println("Printing PDF: "+convertedPDFFile.getAbsolutePath());
+          //PDFPrinter.printPDFSumatra(config, convertedPDFFile);
+        }
       }
+
+      boolean deletePDF = Boolean.parseBoolean(config.getProperty("deletePrintedPDF"));
       if(deletePDF)
       {
         System.out.println("Deleting printed PDF file: "+convertedPDFFile.getAbsolutePath());
@@ -105,27 +122,15 @@ public class InvoiceParser
     }
   }
   
-  private static void emailPDF(Properties config, File convertedPDFFile)
+  private static void emailPDF(Properties config, File convertedPDFFile, String emailAddress)
   {
-    String emailOverrideAddress = config.getProperty("emailOverride", "");
-    String[] emailAddresses = null;
-    if(emailOverrideAddress.length()>0 && emailOverrideAddress.contains("@"))
-    {
-      emailAddresses = new String[]{emailOverrideAddress};
-    }
-    else
-    {
-      emailAddresses = Util.getEmailAddresses(config.getProperty("emailNamesFile"));
-    }
-    if(emailAddresses.length>0)
-    {
-      String sender = config.getProperty("emailSender");
-      String host = config.getProperty("emailHost");
-      String user = config.getProperty("emailUser");
-      String subject = "Purchase Order: "+convertedPDFFile.getName();
-      String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
-      EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
-    }
+//    String[] emailAddresses = new String[]{emailAddress};
+//    String sender = config.getProperty("emailSender");
+//    String host = config.getProperty("emailHost");
+//    String user = config.getProperty("emailUser");
+//    String subject = "Invoice: "+convertedPDFFile.getName();
+//    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
+//    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
   }
   
   public static void log(String data)
@@ -145,7 +150,7 @@ public class InvoiceParser
       line = fileData.get(i);
       if(line.startsWith("invoiceNumber"))
       {
-        if(!currentPageLines.isEmpty())
+        if(!currentPageLines.isEmpty() && currentPageLines.size()>10)
         {
           invoicePages.add(currentPageLines);
           currentPageLines = new ArrayList<String>();
@@ -154,11 +159,11 @@ public class InvoiceParser
       currentPageLines.add(line);
     }
     //there is no final 'invoiceNumber' to trigger the next, so check what was previously parsed, it is likely an invoice
-    if(!currentPageLines.isEmpty())
+    if(!currentPageLines.isEmpty() && currentPageLines.size()>10)
     {
       invoicePages.add(currentPageLines);      
     }
-    log("Parsed: "+invoicePages.size()+" distinct invoices.");
+    log("Parsed: "+invoicePages.size()+" separate invoices from input data.");
     
     //loop through all sets of invoice page data processing into InvoiceData instances
     InvoiceData data;
@@ -208,6 +213,7 @@ public class InvoiceParser
     private String orderTotal = "";
     private String tagMemo = "";
     private String isInvoice = "INVOICE";    
+    private boolean sendAREmail = false;
     private String arEmail = "";
     
     private InvoiceData(List<String> invoiceLines)
@@ -225,8 +231,8 @@ public class InvoiceParser
     private JSONObject toJSON()
     {
       JSONObject root = new JSONObject();
-      //TODO add email output data to the JSON root object so that it can be read by the next step of processing?
-      //root.put("arEmail", "foo");
+      root.put("sendAREmail", sendAREmail);
+      root.put("arEmail", arEmail);
       
       JSONObject dataFields = new JSONObject();
       root.put("dataFields", dataFields);
@@ -263,6 +269,7 @@ public class InvoiceParser
       dataFields.put("additionalCharges", additionalCharges);
       dataFields.put("shippingCharges", shippingCharges);
       dataFields.put("tagMemo", Util.getCombinedTagMemo(tagMemo));
+      
       JSONObject tableData = new JSONObject();
       root.put("tableData", tableData);
       JSONObject productTable = new JSONObject();
@@ -288,7 +295,6 @@ public class InvoiceParser
     {
       int len = invoiceLines.size();
       String line;
-      boolean sendEmail = false;
       for(int i = 0; i < len; i++)
       {
         line = invoiceLines.get(i);
@@ -302,6 +308,7 @@ public class InvoiceParser
         else if(line.startsWith("billAddress1")){billAddress1 = Util.getLineValue(line);}
         else if(line.startsWith("billAddress2")){billAddress2 = Util.getLineValue(line);}
         else if(line.startsWith("billAddress3")){billAddress3 = Util.getLineValue(line);}
+        else if(line.startsWith("billAddress4")){billAddress4 = Util.getLineValue(line);}
         else if(line.startsWith("customerNumber")){customerNumber = Util.getLineValue(line);}
         else if(line.startsWith("invoiceDate")){invoiceDate = Util.getLineValue(line);}
         else if(line.startsWith("dueDate")){dueDate = Util.getLineValue(line);}
@@ -324,11 +331,10 @@ public class InvoiceParser
         else if(line.startsWith("orderTotal")){orderTotal = Util.getLineValue(line);}
         else if(line.startsWith("isInvoice")){isInvoice = Util.getLineValue(line).equals("True")? "INVOICE" : "CREDIT";}
         else if(line.startsWith("tagMemo")){tagMemo = Util.sanatizeForXML(Util.getLineValue(line));}
-        else if(line.startsWith("sendAREmail")){sendEmail = Util.parseBool(Util.getLineValue(line));}
+        else if(line.startsWith("sendAREmail")){sendAREmail = Util.parseBool(Util.getLineValue(line));}
         else if(line.startsWith("arEmail")){arEmail = Util.getLineValue(line);}
         else if(line.startsWith("itemCode")){i = parseItemBlock(invoiceLines, i);}
       }
-      if(!sendEmail){arEmail="";}
       grossTotal = Util.getFormattedDecimalValue(grossTotal);
       shippingCharges = Util.getFormattedDecimalValue(shippingCharges);
       discountValue = Util.getFormattedDecimalValue(discountValue);

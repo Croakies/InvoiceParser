@@ -10,6 +10,8 @@ public class Util
   
   public static boolean parseBool(String input)
   {
+    input = input.toLowerCase();
+    if(input.equals("yes")){input = "true";}
     boolean val = false;
     try
     {
@@ -105,15 +107,15 @@ public class Util
   {
     int gtLen = input.length();
     int periodIndex = input.indexOf(46);
-    if(periodIndex==0)
+    if(periodIndex==0)//stats as .XX -- needs leading digit added
     {
       input = "0"+input;
     }
-    else if (periodIndex == -1)
+    else if (periodIndex == -1)//no period present, needs decimal added as well as trailing zeroes
     {
       input = String.valueOf(input) + ".00";
     }
-    else if (periodIndex > gtLen - 3)
+    else if (periodIndex > gtLen - 3)//period present, but missing digits after decimal; pad with zeroes
     {
       input = String.valueOf(input) + "0";
     }
