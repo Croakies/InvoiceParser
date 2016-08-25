@@ -1,8 +1,6 @@
 package net.shadowmage.po;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Properties;
 
 import javax.activation.DataHandler;
@@ -37,9 +35,7 @@ public class EmailSender
       {
         baseMessage.addRecipient(Message.RecipientType.BCC, new InternetAddress(name));
       }
-      SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
-      String date = sdf.format(new Date());
-      baseMessage.setSubject("Purchase Order " + toAttach.getName() + " : " + date);
+      baseMessage.setSubject(subject);
       MimeBodyPart messageBodyText = new MimeBodyPart();
       messageBodyText.setText(bodyText);
       FileDataSource source = new FileDataSource(toAttach);

@@ -3,7 +3,9 @@ package net.shadowmage.po;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -156,7 +158,9 @@ public class PurchaseOrderParser
       String sender = config.getProperty("emailSender");
       String host = config.getProperty("emailHost");
       String user = config.getProperty("emailUser");
-      String subject = "Purchase Order: "+convertedPDFFile.getName();
+      SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+      String date = sdf.format(new Date());
+      String subject = "Purchase Order " + convertedPDFFile.getName() + " : " + date;
       String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
       System.out.println("Subject: "+subject);
       System.out.println("BodyText: "+bodyText);

@@ -3,7 +3,9 @@ package net.shadowmage.invoice;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -84,9 +86,7 @@ public class InvoiceParser
       //else check for sendAREmail in the JSON root data; if 'True' grab email from arEmail from JSON root data
       if(emailAddress.isEmpty())
       {
-        boolean send = obj.getBoolean("sendAREmail");        
-        log("sendEmailString: "+send);
-        log("JSON RAW: \n"+obj.toString(2));
+        boolean send = obj.getBoolean("sendAREmail");
         if(send)
         {
           emailAddress = obj.getString("arEmail");
@@ -95,24 +95,22 @@ public class InvoiceParser
       
       if(!emailAddress.isEmpty())
       {
-        log("DEBUG: SHOULD EMAIL TO: "+emailAddress);
         emailPDF(config, convertedPDFFile, emailAddress);  
       }
       else//not being emailed to anyone, print it to printer specified in config
       {
-        log("DEBUG: SHOULD PRINT INVOICE");
         boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
         if(print)
         {
-          System.out.println("Printing PDF: "+convertedPDFFile.getAbsolutePath());
-          //PDFPrinter.printPDFSumatra(config, convertedPDFFile);
+          log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
+          PDFPrinter.printPDFSumatra(config, convertedPDFFile);
         }
       }
 
       boolean deletePDF = Boolean.parseBoolean(config.getProperty("deletePrintedPDF"));
       if(deletePDF)
       {
-        System.out.println("Deleting printed PDF file: "+convertedPDFFile.getAbsolutePath());
+        log("Deleting printed PDF file: "+convertedPDFFile.getAbsolutePath());
         Files.delete(convertedPDFFile.toPath());
       }
     }
@@ -124,13 +122,16 @@ public class InvoiceParser
   
   private static void emailPDF(Properties config, File convertedPDFFile, String emailAddress)
   {
-//    String[] emailAddresses = new String[]{emailAddress};
-//    String sender = config.getProperty("emailSender");
-//    String host = config.getProperty("emailHost");
-//    String user = config.getProperty("emailUser");
-//    String subject = "Invoice: "+convertedPDFFile.getName();
-//    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
-//    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
+    String[] emailAddresses = new String[]{emailAddress};
+    String sender = config.getProperty("emailSender");
+    String host = config.getProperty("emailHost");
+    String user = config.getProperty("emailUser");
+    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+    String date = sdf.format(new Date());
+    String subject = "Croakies Invoice# "+convertedPDFFile.getName()+" "+date;
+    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
+    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
+    log("Emailing to: "+emailAddress);
   }
   
   public static void log(String data)
@@ -163,7 +164,7 @@ public class InvoiceParser
     {
       invoicePages.add(currentPageLines);      
     }
-    log("Parsed: "+invoicePages.size()+" separate invoices from input data.");
+    log("Parsed: "+invoicePages.size()+" separate invoices from raw input file.");
     
     //loop through all sets of invoice page data processing into InvoiceData instances
     InvoiceData data;
