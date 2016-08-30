@@ -65,7 +65,7 @@ public class InvoiceMonitor
       monitorLoop();
       if(frequency > 0)
       {
-        System.out.println("Pausing for: "+frequency+" seconds between directory scans.");
+        //System.out.println("Pausing for: "+frequency+" seconds between directory scans.");
         try
         {
           Thread.sleep(frequency * 1000);

@@ -102,8 +102,17 @@ public class InvoiceParser
         boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
         if(print)
         {
-          log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
-          PDFPrinter.printPDFSumatra(config, convertedPDFFile);
+          JSONObject dataObject = obj.getJSONObject("dataFields");
+          String terms = dataObject.getString("terms").toLowerCase().trim();
+          if(!terms.equals("prepay"))
+          {
+            log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
+            PDFPrinter.printPDFSumatra(config, convertedPDFFile);  
+          }
+          else
+          {
+            log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
+          }
         }
       }
 
@@ -332,7 +341,7 @@ public class InvoiceParser
         else if(line.startsWith("orderTotal")){orderTotal = Util.getLineValue(line);}
         else if(line.startsWith("isInvoice")){isInvoice = Util.getLineValue(line).equals("True")? "INVOICE" : "CREDIT";}
         else if(line.startsWith("tagMemo")){tagMemo = Util.sanatizeForXML(Util.getLineValue(line));}
-        else if(line.startsWith("sendAREmail")){sendAREmail = Util.parseBool(Util.getLineValue(line));}
+        else if(line.startsWith("sendInvoicesToArEmail")){sendAREmail = Util.parseBool(Util.getLineValue(line));}
         else if(line.startsWith("arEmail")){arEmail = Util.getLineValue(line);}
         else if(line.startsWith("itemCode")){i = parseItemBlock(invoiceLines, i);}
       }
