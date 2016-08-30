@@ -29,13 +29,13 @@ public class InvoiceMonitor
    */
   public static void main(String[] args)
   {
-    Log.init();
     Properties prop = new Properties();
     FileInputStream input = null;
     try
     {
       input = new FileInputStream("invoiceConfig/config.cfg");
       prop.load(input);
+      Log.init(prop);
       InvoiceMonitor monitor = new InvoiceMonitor(prop);
       monitor.runMonitor();
     }
@@ -74,7 +74,14 @@ public class InvoiceMonitor
     Log.log("Starting directory scanning process for path: "+monitoredDirectory.getAbsolutePath());
     while(true)
     {
-      monitorLoop();
+      try
+      {
+        monitorLoop();
+      }
+      catch(Exception e)
+      {
+        Log.exception(e);
+      }
       if(frequency > 0)
       {
         //System.out.println("Pausing for: "+frequency+" seconds between directory scans.");
