@@ -2,6 +2,7 @@ package net.shadowmage.po;
 
 import java.io.File;
 
+import net.shadowmage.Log;
 import net.shadowmage.Util;
 import ooo.connector.BootstrapSocketConnector;
 
@@ -26,8 +27,7 @@ public class PDFConverter
   {
     String inputFileURL = Util.pathToURL(inputFileName);
     String outputFileURL = Util.pathToURL(outputFileName);
-    System.out.println("Loading existing filled template file: " + inputFileURL);
-    System.out.println("Converting and saving to new pdf file: " + outputFileURL);
+    Log.log("Converting and saving to new pdf file: " + inputFileURL + " -> " +outputFileURL);
     try
     {
       XDesktop xDesktop = PDFConverter.getDesktop();
@@ -44,8 +44,8 @@ public class PDFConverter
     }
     catch (Exception e)
     {
-      System.out.println("ERROR: Caught exception while attempting to convert to PDF.  Likely cause is that the output file is locked from editing or input files are invalid. FileName: "+ outputFileName + " : " + inputFileName);
-      e.printStackTrace();
+      Log.log("ERROR: Caught exception while attempting to convert to PDF.  Likely cause is that the output file is locked from editing or input files are invalid. FileName: "+ outputFileName + " : " + inputFileName);
+      Log.exception(e);
     }
   }
   
@@ -64,12 +64,12 @@ public class PDFConverter
       }
       else
       {
-        System.out.println("Can't create a desktop. No connection, no remote office servicemanager available!");
+        Log.log("Can't create a desktop. No connection, no remote office servicemanager available!");
       }
     }
     catch (Exception e)
     {
-      e.printStackTrace(System.err);
+      Log.exception(e);
       System.exit(1);
     }
     return xDesktop;

@@ -3,14 +3,12 @@ package net.shadowmage.invoice;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
+import net.shadowmage.Log;
 import net.shadowmage.Util;
-import net.shadowmage.po.EmailSender;
 import net.shadowmage.po.PDFConverter;
 import net.shadowmage.po.PDFPrinter;
 import net.shadowmage.po.TemplateFiller;
@@ -19,55 +17,46 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class InvoiceParser
-{
+{  
   
-  public static void parseInvoice(Properties config, File inputFile, File tempDirectory, File outputDirectory)
-  {
+  public static void parseSingleInvoice(Properties config, File inputFile, File archivePath, File outputPath)
+  {     
+    InvoiceParser parser = new InvoiceParser();
+    List<String> fileLines;
     try
     {
-      List<String> fileLines = Files.readAllLines(inputFile.toPath());      
-      //first pass parsing; clean up new-line feed chars
-      //grab email override if present      
+      fileLines = Files.readAllLines(inputFile.toPath());
       String line;
       int len = fileLines.size();    
       String emailOverride = "";
       for(int i = 0; i< len; i++)
       {
         line = fileLines.get(i);
-        if (line.startsWith("\f"))
-        {
-          line = line.substring(1);
-          fileLines.set(i, line);
-        }
         if(line.startsWith("Send Email:"))
         {
-          emailOverride = Util.getLineValue(line);
+          String val = Util.getLineValue(line);
+          if(!val.isEmpty())
+          {
+            emailOverride=val;
+          }
         }
       }
-      
-      InvoiceParser parser = new InvoiceParser();
-      List<InvoiceData> invoices = parser.parseLines(fileLines);
-      
-      //finally, send to the next step of processing; for filling template, converting to pdf, and email/print as needed      
-      for(InvoiceData e : invoices)
-      {
-        processInvoice(config, e.toJSON(), tempDirectory, outputDirectory, emailOverride);
-      }
-      config.remove("emailOverride");
+      InvoiceData data = parser.parseLines(fileLines);
+      processInvoice(config, data.toJSON(), archivePath, outputPath, emailOverride);
     }
     catch (IOException e)
     {
-      e.printStackTrace();
-    }
+      Log.exception(e);
+    }    
   }
   
-  private static void processInvoice(Properties config, JSONObject obj, File tempDirectory, File outputDirectory, String emailOverride)
+  private static void processInvoice(Properties config, JSONObject obj, File archivePath, File outputDirectory, String emailOverride)
   {
     File templateFile = new File(config.getProperty("templateFile"));    
     String fileBasicName = obj.getJSONObject("dataFields").getString("invoiceNum");
     String filledTemplateName = fileBasicName + ".ott";
     String convertedPDFName = fileBasicName + ".pdf";    
-    File filledTemplateFile = new File(tempDirectory, filledTemplateName);
+    File filledTemplateFile = new File(archivePath, filledTemplateName);
     try
     {
       TemplateFiller.fillTemplate(obj, filledTemplateFile, templateFile);
@@ -77,7 +66,7 @@ public class InvoiceParser
       boolean deleteTemplate = Boolean.parseBoolean(config.getProperty("deleteFilledTemplate"));
       if(deleteTemplate)
       {
-        System.out.println("Deleting filled template file: "+filledTemplateFile.getAbsolutePath());
+        log("Deleting filled template file: "+filledTemplateFile.getAbsolutePath());
         Files.delete(filledTemplateFile.toPath());
       }
       
@@ -104,14 +93,14 @@ public class InvoiceParser
         {
           JSONObject dataObject = obj.getJSONObject("dataFields");
           String terms = dataObject.getString("terms").toLowerCase().trim();
-          if(!terms.equals("prepay"))
+          if(!terms.equals("prepay") || !terms.equals("prepaid"))
           {
-            log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
-            PDFPrinter.printPDFSumatra(config, convertedPDFFile);  
+            log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
           }
           else
           {
-            log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
+            log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
+            PDFPrinter.printPDFSumatra(config, convertedPDFFile);  
           }
         }
       }
@@ -125,66 +114,33 @@ public class InvoiceParser
     }
     catch (Exception e)
     {
-      e.printStackTrace();
+      Log.exception(e);
     }
   }
   
   private static void emailPDF(Properties config, File convertedPDFFile, String emailAddress)
   {
-    String[] emailAddresses = new String[]{emailAddress};
-    String sender = config.getProperty("emailSender");
-    String host = config.getProperty("emailHost");
-    String user = config.getProperty("emailUser");
-    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
-    String date = sdf.format(new Date());
-    String subject = "Croakies Invoice# "+convertedPDFFile.getName()+" "+date;
-    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
-    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
-    log("Emailing to: "+emailAddress);
+//    String[] emailAddresses = new String[]{emailAddress};
+//    String sender = config.getProperty("emailSender");
+//    String host = config.getProperty("emailHost");
+//    String user = config.getProperty("emailUser");
+//    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+//    String date = sdf.format(new Date());
+//    String subject = "Croakies Invoice# "+convertedPDFFile.getName()+" "+date;
+//    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
+//    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
+    log("Emailing "+convertedPDFFile.getName()+" to: "+emailAddress);
   }
   
   public static void log(String data)
   {
-    System.out.println(data);    
+    Log.log(data);
   }
   
-  private final List<InvoiceData> parseLines(List<String> fileData)
-  {
-    List<List<String>> invoicePages = new ArrayList<List<String>>();
-    List<String> currentPageLines = new ArrayList<String>();
-    String line;
-    int len = fileData.size();
-    //loop through all lines in file, breaking into distinct invoices based on the 'invoiceNumber' starting line
-    for(int i = 0; i < len; i++)
-    {
-      line = fileData.get(i);
-      if(line.startsWith("invoiceNumber"))
-      {
-        if(!currentPageLines.isEmpty() && currentPageLines.size()>10)
-        {
-          invoicePages.add(currentPageLines);
-          currentPageLines = new ArrayList<String>();
-        }
-      }
-      currentPageLines.add(line);
-    }
-    //there is no final 'invoiceNumber' to trigger the next, so check what was previously parsed, it is likely an invoice
-    if(!currentPageLines.isEmpty() && currentPageLines.size()>10)
-    {
-      invoicePages.add(currentPageLines);      
-    }
-    log("Parsed: "+invoicePages.size()+" separate invoices from raw input file.");
-    
-    //loop through all sets of invoice page data processing into InvoiceData instances
-    InvoiceData data;
-    List<InvoiceData> invoices = new ArrayList<InvoiceData>();
-    len = invoicePages.size();
-    for(int i = 0; i < len; i++)
-    {
-      data = new InvoiceData(invoicePages.get(i));
-      invoices.add(data);
-    }
-    return invoices;
+  private final InvoiceData parseLines(List<String> fileData)
+  {    
+    InvoiceData data = new InvoiceData(fileData);
+    return data;
   }
     
   private class InvoiceData
