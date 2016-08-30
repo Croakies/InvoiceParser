@@ -120,15 +120,15 @@ public class InvoiceParser
   
   private static void emailPDF(Properties config, File convertedPDFFile, String emailAddress)
   {
-//    String[] emailAddresses = new String[]{emailAddress};
-//    String sender = config.getProperty("emailSender");
-//    String host = config.getProperty("emailHost");
-//    String user = config.getProperty("emailUser");
-//    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
-//    String date = sdf.format(new Date());
-//    String subject = "Croakies Invoice# "+convertedPDFFile.getName()+" "+date;
-//    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
-//    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
+    String[] emailAddresses = new String[]{emailAddress};
+    String sender = config.getProperty("emailSender");
+    String host = config.getProperty("emailHost");
+    String user = config.getProperty("emailUser");
+    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+    String date = sdf.format(new Date());
+    String subject = "Croakies Invoice# "+convertedPDFFile.getName()+" "+date;
+    String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
+    EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
     log("Emailing "+convertedPDFFile.getName()+" to: "+emailAddress);
   }
   
