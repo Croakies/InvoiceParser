@@ -16,6 +16,8 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import net.shadowmage.Log;
+
 public class EmailSender
 {
   
@@ -48,10 +50,11 @@ public class EmailSender
       mp.addBodyPart((BodyPart) messageAttachmentPart);
       baseMessage.setContent((Multipart) mp);
       Transport.send((Message) baseMessage);
+      Log.log("Emaied "+toAttach.getName()+" to: "+recipients[0]+" with subject: "+subject);
     }
     catch (Exception e)
     {
-      e.printStackTrace();
+      Log.exception(e);
     }    
   }
   
