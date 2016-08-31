@@ -57,6 +57,11 @@ public class InvoiceParser
   {
     File templateFile = new File(config.getProperty("templateFile"));    
     String fileBasicName = obj.getJSONObject("dataFields").getString("invoiceNum");
+    if(fileBasicName.isEmpty())
+    {
+      log("ERROR: Found invoice with no invoice number, skipping processing");
+      return;
+    }
     String filledTemplateName = fileBasicName + ".ott";
     String convertedPDFName = fileBasicName + ".pdf";    
     File filledTemplateFile = new File(archivePath, filledTemplateName);
@@ -184,6 +189,7 @@ public class InvoiceParser
     private String isInvoice = "INVOICE";    
     private boolean sendAREmail = false;
     private String arEmail = "";
+    private String payDescription = "Pay This Amount";
     
     private InvoiceData(List<String> invoiceLines)
     {
@@ -237,6 +243,7 @@ public class InvoiceParser
       dataFields.put("discountValue", discountValue);
       dataFields.put("additionalCharges", additionalCharges);
       dataFields.put("shippingCharges", shippingCharges);
+      dataFields.put("payDescription", payDescription);
       dataFields.put("tagMemo", Util.getCombinedTagMemo(tagMemo));
       
       JSONObject tableData = new JSONObject();
@@ -309,6 +316,13 @@ public class InvoiceParser
       discountValue = Util.getFormattedDecimalValue(discountValue);
       additionalCharges = Util.getFormattedDecimalValue(additionalCharges);
       orderTotal = Util.getFormattedDecimalValue(orderTotal);
+      String tL = terms.trim().toLowerCase();
+      boolean prepay = tL.equals("prepaid") || tL.equals("prepay");
+      if(prepay)
+      {
+        payDescription = prepay? "Total Paid" : "Pay This Amount";
+        isInvoice = "RECEIPT";
+      }
     }
     
     private int parseItemBlock(List<String> lines, int startIndex)
