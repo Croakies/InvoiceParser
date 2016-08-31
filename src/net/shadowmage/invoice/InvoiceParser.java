@@ -78,40 +78,50 @@ public class InvoiceParser
         Files.delete(filledTemplateFile.toPath());
       }
       
+      //this checks the 'Print Copy' option from the report output
+      boolean forcePrint = obj.getBoolean("forcePrint");
+      if(forcePrint)
+      {
+        log("Force-Printing PDF: "+convertedPDFFile.getAbsolutePath());
+        PDFPrinter.printPDFSumatra(config, convertedPDFFile);  
+      }
+      else
+      {
       //default to override address if present
-      String emailAddress = emailOverride;
-      //else check for sendAREmail in the JSON root data; if 'True' grab email from arEmail from JSON root data
-      if(emailAddress.isEmpty())
-      {
-        boolean send = obj.getBoolean("sendAREmail");
-        if(send)
+        String emailAddress = emailOverride;
+        //else check for sendAREmail in the JSON root data; if 'True' grab email from arEmail from JSON root data
+        if(emailAddress.isEmpty())
         {
-          emailAddress = obj.getString("arEmail");
-        }
-      }
-      
-      if(!emailAddress.isEmpty())
-      {
-        emailPDF(config, convertedPDFFile, emailAddress);  
-      }
-      else//not being emailed to anyone, print it to printer specified in config
-      {
-        boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
-        if(print)
-        {
-          JSONObject dataObject = obj.getJSONObject("dataFields");
-          String terms = dataObject.getString("terms").toLowerCase().trim();
-          if(!terms.equals("prepay") || !terms.equals("prepaid"))
+          boolean send = obj.getBoolean("sendAREmail");
+          if(send)
           {
-            log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
-          }
-          else
-          {
-            log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
-            PDFPrinter.printPDFSumatra(config, convertedPDFFile);  
+            emailAddress = obj.getString("arEmail");
           }
         }
-      }
+        
+        if(!emailAddress.isEmpty())
+        {
+          emailPDF(config, convertedPDFFile, emailAddress);  
+        }
+        else//not being emailed to anyone, print it to printer specified in config
+        {
+          boolean print = Boolean.parseBoolean(config.getProperty("printOutput").toLowerCase());
+          if(print)
+          {
+            JSONObject dataObject = obj.getJSONObject("dataFields");
+            String terms = dataObject.getString("terms").toLowerCase().trim();
+            if(!terms.equals("prepay") || !terms.equals("prepaid"))
+            {
+              log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
+            }
+            else
+            {
+              log("Printing PDF: "+convertedPDFFile.getAbsolutePath());
+              PDFPrinter.printPDFSumatra(config, convertedPDFFile);  
+            }
+          }
+        }
+      }      
 
       boolean deletePDF = Boolean.parseBoolean(config.getProperty("deletePrintedPDF"));
       if(deletePDF)
@@ -137,7 +147,6 @@ public class InvoiceParser
     String subject = "Croakies Invoice# "+convertedPDFFile.getName()+" "+date;
     String bodyText = Util.getEmailBodyText(config.getProperty("emailTextFile"));
     EmailSender.sendEmail(sender, host, user, emailAddresses, subject, bodyText, convertedPDFFile);
-    log("Emailing "+convertedPDFFile.getName()+" to: "+emailAddress);
   }
   
   public static void log(String data)
@@ -190,6 +199,7 @@ public class InvoiceParser
     private boolean sendAREmail = false;
     private String arEmail = "";
     private String payDescription = "Pay This Amount";
+    private boolean forcePrint = false;
     
     private InvoiceData(List<String> invoiceLines)
     {
@@ -208,6 +218,7 @@ public class InvoiceParser
       JSONObject root = new JSONObject();
       root.put("sendAREmail", sendAREmail);
       root.put("arEmail", arEmail);
+      root.put("forcePrint", forcePrint);
       
       JSONObject dataFields = new JSONObject();
       root.put("dataFields", dataFields);
@@ -309,6 +320,7 @@ public class InvoiceParser
         else if(line.startsWith("tagMemo")){tagMemo = Util.sanatizeForXML(Util.getLineValue(line));}
         else if(line.startsWith("sendInvoicesToArEmail")){sendAREmail = Util.parseBool(Util.getLineValue(line));}
         else if(line.startsWith("arEmail")){arEmail = Util.getLineValue(line);}
+        else if(line.startsWith("printCopy")){forcePrint = Util.parseBool(Util.getLineValue(line));}
         else if(line.startsWith("itemCode")){i = parseItemBlock(invoiceLines, i);}
       }
       grossTotal = Util.getFormattedDecimalValue(grossTotal);
