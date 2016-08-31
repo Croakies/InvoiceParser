@@ -50,7 +50,7 @@ public class EmailSender
       mp.addBodyPart((BodyPart) messageAttachmentPart);
       baseMessage.setContent((Multipart) mp);
       Transport.send((Message) baseMessage);
-      Log.log("Emaied "+toAttach.getName()+" to: "+recipients[0]+" with subject: "+subject);
+      Log.log("Emailed "+toAttach.getName()+" to: "+recipients[0]+" with subject: "+subject);
     }
     catch (Exception e)
     {
