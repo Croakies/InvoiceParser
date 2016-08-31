@@ -104,35 +104,37 @@ public class InvoiceMonitor
   private void monitorLoop()
   {
     File[] files = monitoredDirectory.listFiles();
-    if(files==null || files.length==0){return;}//check for null, else network problems cause null-refs
-    for(File fileToParse : files)
+    if(files != null)//check for null, else network problems cause null-refs
     {
-      //skip directories, only process actual files
-      if(!fileToParse.isFile())
+      for(File fileToParse : files)
       {
-        continue;
-      }
-      try
-      {
-        System.out.println("Found remote file: "+fileToParse.getAbsolutePath());
-        // the local destination temp file; just so we are working on a local copy
-        File localInputFile = new File(localArchiveDirectory, fileToParse.getName());
-        // copy it to the local file
-        Files.copy(fileToParse.toPath(), localInputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        System.out.println("Copied to local file: "+localInputFile.getAbsolutePath());
-        // delete the remote original copy
-        Files.delete(fileToParse.toPath());
-        System.out.println("Deleted remote original: "+fileToParse.getAbsolutePath());
-        // re-seat reference for further use; the 'inputFile' is now explicitly the local copy
-        fileToParse = localInputFile;
+        //skip directories, only process actual files
+        if(!fileToParse.isFile())
+        {
+          continue;
+        }
+        try
+        {
+          System.out.println("Found remote file: "+fileToParse.getAbsolutePath());
+          // the local destination temp file; just so we are working on a local copy
+          File localInputFile = new File(localArchiveDirectory, fileToParse.getName());
+          // copy it to the local file
+          Files.copy(fileToParse.toPath(), localInputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+          System.out.println("Copied to local file: "+localInputFile.getAbsolutePath());
+          // delete the remote original copy
+          Files.delete(fileToParse.toPath());
+          System.out.println("Deleted remote original: "+fileToParse.getAbsolutePath());
+          // re-seat reference for further use; the 'inputFile' is now explicitly the local copy
+          fileToParse = localInputFile;
 
-        //pass the parser the reference to the local copy of the file
-        //parser will be responsible for any further processing of files and post-parsing cleanup        
-        parseMultipleInvoice(config, fileToParse, localTempDirectory, localArchiveDirectory, localOutputDirectory);
-      }
-      catch (IOException e)
-      {
-        Log.exception(e);
+          //pass the parser the reference to the local copy of the file
+          //parser will be responsible for any further processing of files and post-parsing cleanup        
+          parseMultipleInvoice(config, fileToParse, localTempDirectory, localArchiveDirectory, localOutputDirectory);
+        }
+        catch (IOException e)
+        {
+          Log.exception(e);
+        }
       }
     }
     processLocal(config, localTempDirectory, localArchiveDirectory, localOutputDirectory);
