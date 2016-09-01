@@ -110,7 +110,7 @@ public class InvoiceParser
           {
             JSONObject dataObject = obj.getJSONObject("dataFields");
             String terms = dataObject.getString("terms").toLowerCase().trim();
-            if(!terms.equals("prepay") || !terms.equals("prepaid"))
+            if(terms.equals("prepay") || terms.equals("prepaid"))
             {
               log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
             }
@@ -330,7 +330,7 @@ public class InvoiceParser
       orderTotal = Util.getFormattedDecimalValue(orderTotal);
       String tL = terms.trim().toLowerCase();
       boolean prepay = tL.equals("prepaid") || tL.equals("prepay");
-      if(prepay)
+      if(prepay && isInvoice.toLowerCase().equals("invoice"))
       {
         payDescription = prepay? "Total Paid" : "Pay This Amount";
         isInvoice = "RECEIPT";
