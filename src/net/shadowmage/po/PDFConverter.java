@@ -14,6 +14,7 @@ import com.sun.star.lang.XComponent;
 import com.sun.star.lang.XMultiComponentFactory;
 import com.sun.star.uno.UnoRuntime;
 import com.sun.star.uno.XComponentContext;
+import com.sun.star.util.XCloseable;
 
 public class PDFConverter
 {
@@ -41,6 +42,16 @@ public class PDFConverter
       aMediaDescriptor[0].Name = "FilterName";
       aMediaDescriptor[0].Value = "writer_pdf_Export";
       xStorable.storeToURL(outputFileURL, aMediaDescriptor);
+      
+      XCloseable xCloseable = (XCloseable) UnoRuntime.queryInterface(XCloseable.class, xComponent);
+      if(xCloseable!=null)
+      {
+        xCloseable.close(true);
+      }
+      else
+      {
+        xComponent.dispose();
+      } 
     }
     catch (Exception e)
     {
