@@ -1,0 +1,9 @@
+Setting up Directory Monitor for Invoice processing:
+Monitored Directory : C:\git_source\git\InvoiceParser\input
+Local Arch Directory: C:\git_source\git\InvoiceParser\output\archive
+Local Out Directory : C:\git_source\git\InvoiceParser\output\output
+Local Temp Directory: C:\git_source\git\InvoiceParser\output\temp
+Starting directory scanning process for path: C:\git_source\git\InvoiceParser\input
+Processing: 1 invoices from local folder.
+Converting and saving to new pdf file: file:///C:/git_source/git/InvoiceParser/output/archive/492552.ott -> file:///C:/git_source/git/InvoiceParser/output/output/492552.pdf
+Aborting sending email from config setting

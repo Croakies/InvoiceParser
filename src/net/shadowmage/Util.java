@@ -31,7 +31,7 @@ public class Util
     int i = 0;
     while (i < memoLines.length)
     {
-      output = String.valueOf(output) + "<text:span><text:line-break /></text:span>  " + memoLines[i];
+      output = String.valueOf(output) + "<text:span><text:line-break /></text:span>  " + Util.sanatizeForXML(memoLines[i]);
       ++i;
     }
     return output;

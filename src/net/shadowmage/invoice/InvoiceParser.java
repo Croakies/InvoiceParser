@@ -110,7 +110,7 @@ public class InvoiceParser
           {
             JSONObject dataObject = obj.getJSONObject("dataFields");
             String terms = dataObject.getString("terms").toLowerCase().trim();
-            if(terms.equals("prepay") || terms.equals("prepaid"))
+            if(terms.equals("prepay") || terms.equals("prepaid") || terms.equals("prepay invoice"))
             {
               log("Skipping printing of prepay invoice: "+convertedPDFFile.getName());
             }
@@ -138,6 +138,12 @@ public class InvoiceParser
   
   private static void emailPDF(Properties config, File convertedPDFFile, String emailAddress)
   {
+    boolean send = Boolean.parseBoolean(config.getProperty("emailOutput"));
+    if(!send)
+    {
+      log("Aborting sending email from config setting");
+      return;
+    }
     String[] emailAddresses = new String[]{emailAddress};
     String sender = config.getProperty("emailSender");
     String host = config.getProperty("emailHost");
@@ -414,13 +420,13 @@ public class InvoiceParser
       if(skuData != null && skuData.length() > 0)
       {
         skuData = Util.sanatizeForXML(skuData);
-        description = (new StringBuilder(String.valueOf(description))).append("<text:span><text:line-break /></text:span>SKU: ").append(skuData).toString();
+        description = (new StringBuilder(String.valueOf(description))).append("<text:span><text:line-break /></text:span>SKU: ").append(Util.sanatizeForXML(skuData)).toString();
       }
       if(commentData.size() > 0)
       {
         for(int i = 0; i < commentData.size(); i++)
         {
-          description = (new StringBuilder(String.valueOf(description))).append("<text:span><text:line-break /></text:span>  ").append((String)commentData.get(i)).toString();
+          description = (new StringBuilder(String.valueOf(description))).append("<text:span><text:line-break /></text:span>  ").append(Util.sanatizeForXML(commentData.get(i))).toString();
         }         
       }
       out.put("DESCRIPTION", description);
